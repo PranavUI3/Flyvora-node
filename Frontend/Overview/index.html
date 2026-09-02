@@ -1,0 +1,551 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Airfare Index System</title>
+    <!-- Tailwind CSS Output CDN / File -->
+    <!-- Relative path keeps styles available when this file is opened directly. -->
+    <link href="src/output.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="../theme.css">
+    <style>
+      /* Modern Scrollbars */
+      ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+      }
+      ::-webkit-scrollbar-track {
+        background: rgba(15, 23, 42, 0.6);
+        border-radius: 8px;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: rgba(59, 130, 246, 0.3);
+        border-radius: 8px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: rgba(59, 130, 246, 0.6);
+      }
+
+      /* Ambient Glow & Entrance Keyframes */
+      @keyframes fadeInScale {
+        0% {
+          opacity: 0;
+          transform: scale(0.97) translateY(8px);
+        }
+        100% {
+          opacity: 1;
+          transform: scale(1) translateY(0);
+        }
+      }
+
+      @keyframes pulseGlow {
+        0%,
+        100% {
+          opacity: 0.4;
+        }
+        50% {
+          opacity: 0.8;
+        }
+      }
+
+      .animate-fade-in {
+        animation: fadeInScale 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      }
+
+      .glow-effect {
+        box-shadow: 0 0 25px -5px rgba(59, 130, 246, 0.15);
+      }
+
+      .glow-effect:hover {
+        box-shadow: 0 0 30px -2px rgba(59, 130, 246, 0.3);
+      }
+
+      /* Media Queries */
+      @media (max-width: 640px) {
+        #site-header {
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 0.75rem;
+          padding-top: 1rem;
+          padding-bottom: 1rem;
+        }
+
+        #primary-nav {
+          width: 100%;
+          /* Allow child elements to wrap instead of scrolling horizontally */
+          overflow-x: visible;
+        }
+
+        #primary-nav ul {
+          /* Set width to full container and wrap items */
+          width: 100%;
+          flex-wrap: wrap;
+          justify-content: center;
+          gap: 0.375rem;
+        }
+
+        /* Adjust padding and text size so menu links fit neatly on small screens */
+        #primary-nav a {
+          padding: 0.375rem 0.625rem;
+          font-size: 0.75rem;
+        }
+
+        #brand-title {
+          font-size: 0.9rem;
+        }
+
+        #dashboard-main {
+          padding-left: 1rem;
+          padding-right: 1rem;
+        }
+
+        #route-summary-kpi-grid {
+          gap: 0.75rem;
+        }
+
+        .metric-value {
+          font-size: 1.5rem;
+        }
+      }
+    </style>
+  </head>
+
+  <body
+    class="m-0 p-0 box-border bg-gradient-to-tl from-[#0a1220] via-[#0f1a30] to-[#2a3958] min-h-screen text-slate-100 font-sans antialiased selection:bg-blue-500 selection:text-white"
+  >
+    <!-- ============ Site Header ============ -->
+    <header
+      id="site-header"
+      class="w-full bg-gradient-to-r from-[#182338]/90 to-[#0f1729]/90 border-b border-cyan-400/30 shadow-[0_4px_20px_rgba(34,211,238,0.1)] backdrop-blur-md px-8 py-3.5 flex items-center justify-between sticky top-0 z-50 transition-all duration-300"
+    >
+      <!-- Brand / logo -->
+      <div
+        id="brand-logo"
+        class="flex items-center space-x-3 ml-2 group cursor-pointer"
+      >
+        <svg
+          id="header-airplane-icon"
+          class="w-6 h-6 text-blue-400 drop-shadow-[0_0_8px_rgba(96,165,250,0.6)] transition-transform duration-500 ease-out group-hover:translate-x-1 group-hover:-translate-y-1 group-hover:scale-110"
+          fill="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"
+          />
+        </svg>
+        <h1
+          id="brand-title"
+          class="text-base font-bold tracking-wide uppercase text-slate-100 transition-colors duration-200 group-hover:text-blue-300"
+        >
+          Airfare Index System
+          <span class="text-xs font-normal text-slate-400 ml-1"
+            >(SIH26056)</span
+          >
+        </h1>
+      </div>
+
+      <!-- Primary navigation -->
+      <nav
+        id="primary-nav"
+        class="flex items-center bg-gradient-to-r from-[#1e293b]/70 to-[#1e293b]/40 p-1.5 rounded-xl border border-white/10 text-sm mr-2 shadow-inner"
+      >
+        <ul class="flex items-center gap-x-2">
+          <li>
+            <a
+              id="home"
+              class="px-4 py-2 rounded-lg bg-gradient-to-r from-blue-500/35 to-blue-500/15 text-blue-300 font-medium border border-blue-400/40 shadow-[0_0_12px_rgba(59,130,246,0.2)] block transition-all duration-300"
+              >Overview</a
+            >
+          </li>
+          <li>
+            <a
+              id="route"
+              class="px-4 py-2 rounded-lg text-slate-300 hover:text-white hover:bg-slate-700/50 hover:shadow-md transition-all duration-200 block"
+              >Route Explorer</a
+            >
+          </li>
+          <li>
+            <a
+              id="lead"
+              class="px-4 py-2 rounded-lg text-slate-300 hover:text-white hover:bg-slate-700/50 hover:shadow-md transition-all duration-200 block"
+              >Lead-Time Analysis</a
+            >
+          </li>
+          <li>
+            <a
+              id="airline"
+              class="px-4 py-2 rounded-lg text-slate-300 hover:text-white hover:bg-slate-700/50 hover:shadow-md transition-all duration-200 block"
+              >Airline Comparison</a
+            >
+          </li>
+          <li>
+            <a
+              id="quality"
+              class="px-4 py-2 rounded-lg text-slate-300 hover:text-white hover:bg-slate-700/50 hover:shadow-md transition-all duration-200 block"
+              >Data Quality</a
+            >
+          </li>
+        </ul>
+      </nav>
+    </header>
+
+    <!-- ============ Dashboard Main ============ -->
+    <main id="dashboard-main" class="w-full px-6 py-4 animate-fade-in">
+      <!-- ---------- Filter Bar ---------- -->
+      <section
+        id="filter-bar"
+        class="w-full bg-gradient-to-r from-[#1e293b]/55 to-[#1e293b]/25 border border-slate-700/50 backdrop-blur-md rounded-xl p-4 my-2 shadow-lg transition-all duration-300 hover:border-slate-600/70"
+      >
+        <div
+          class="flex flex-col lg:flex-row items-center justify-between gap-4"
+        >
+          <!-- Filter dropdowns -->
+          <div
+            class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4 w-full text-xs font-medium"
+          >
+            <!-- Filter: date range -->
+            <div class="relative w-full">
+              <select
+                name="days"
+                id="filter-date-range"
+                class="w-full bg-[#1e293b]/80 border border-slate-700/70 text-slate-200 rounded-lg px-3.5 py-2.5 pr-8 appearance-none focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/40 transition-all duration-200 shadow-sm cursor-pointer hover:border-slate-500"
+              >
+                <option>Last 30 Days</option>
+                <option>Last 7 Days</option>
+                <option>Last 90 Days</option>
+              </select>
+              <div
+                class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5 text-slate-400"
+              >
+                <svg
+                  class="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M19 9l-7 7-7-7"
+                  ></path>
+                </svg>
+              </div>
+            </div>
+
+            <!-- Filter: sector / region -->
+            <div class="relative w-full xl:col-span-2">
+              <select
+                name="sectors"
+                id="filter-sector-region"
+                class="w-full bg-[#1e293b]/80 border border-slate-700/70 text-slate-200 rounded-lg px-3.5 py-2.5 pr-8 appearance-none focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/40 transition-all duration-200 shadow-sm cursor-pointer hover:border-slate-500"
+              >
+                <option>All India Sectors</option>
+                <option>South Regional Hubs</option>
+                <option>North Metro Corridor</option>
+              </select>
+              <div
+                class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5 text-slate-400"
+              >
+                <svg
+                  class="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M19 9l-7 7-7-7"
+                  ></path>
+                </svg>
+              </div>
+            </div>
+
+            <!-- Filter: travel class -->
+            <div class="relative w-full">
+              <select
+                name="class"
+                id="filter-travel-class"
+                class="w-full bg-[#1e293b]/80 border border-slate-700/70 text-slate-200 rounded-lg px-3.5 py-2.5 pr-8 appearance-none focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/40 transition-all duration-200 shadow-sm cursor-pointer hover:border-slate-500"
+              >
+                <option>Economy</option>
+                <option>Business</option>
+                <option>First Class</option>
+              </select>
+              <div
+                class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5 text-slate-400"
+              >
+                <svg
+                  class="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M19 9l-7 7-7-7"
+                  ></path>
+                </svg>
+              </div>
+            </div>
+
+            <!-- Filter: airline -->
+            <div class="relative w-full">
+              <select
+                name="airlines"
+                id="filter-airline"
+                class="w-full bg-[#1e293b]/80 border border-slate-700/70 text-slate-200 rounded-lg px-3.5 py-2.5 pr-8 appearance-none focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/40 transition-all duration-200 shadow-sm cursor-pointer hover:border-slate-500"
+              >
+                <option>All Airlines</option>
+                <option>IndiGo</option>
+                <option>Air India</option>
+                <option>SpiceJet</option>
+              </select>
+              <div
+                class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5 text-slate-400"
+              >
+                <svg
+                  class="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M19 9l-7 7-7-7"
+                  ></path>
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          <!-- Refresh button -->
+          <button
+            id="refresh-data-btn"
+            class="w-full lg:w-auto flex items-center justify-center gap-2 bg-[#1e293b]/80 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white font-medium text-xs px-6 py-2.5 rounded-lg transition-all duration-200 shadow-md hover:shadow-blue-500/30 active:scale-95 whitespace-nowrap cursor-pointer"
+          >
+            <svg
+              id="refresh-icon"
+              class="w-4 h-4 transition-transform duration-700 ease-in-out"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+              ></path>
+            </svg>
+            <span>Refresh</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- ---------- Key Metrics KPI cards ---------- -->
+      <section
+        id="key-metrics-grid"
+        class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 p-4 rounded-2xl"
+      >
+        <!-- KPI Card 1 -->
+        <div
+          id="metric-airfare-index"
+          class="glow-effect bg-gradient-to-r from-slate-800/90 via-slate-900/90 to-[#0e1e3e]/90 border border-white/10 rounded-xl p-4 text-center backdrop-blur-sm my-2 shadow-lg hover:-translate-y-1 transition-all duration-300"
+        >
+          <p
+            class="text-xs uppercase tracking-wider text-slate-400 font-semibold"
+          >
+            National Airfare Index
+          </p>
+          <p
+            class="metric-value text-3xl font-bold text-blue-300 mt-2 drop-shadow-[0_0_12px_rgba(147,197,253,0.3)]"
+          >
+            118.4 pts
+          </p>
+          <p class="text-[11px] text-slate-500 mt-1">Base: Jan 2026 = 100</p>
+        </div>
+
+        <!-- KPI Card 2 -->
+        <div
+          id="metric-inflation-rate"
+          class="glow-effect bg-gradient-to-r from-slate-800/90 via-slate-900/90 to-[#0e1e3e]/90 border border-white/10 rounded-xl p-4 text-center backdrop-blur-sm my-2 shadow-lg hover:-translate-y-1 transition-all duration-300"
+        >
+          <p
+            class="text-xs uppercase tracking-wider text-slate-400 font-semibold"
+          >
+            30-Day Inflation Rate
+          </p>
+          <p
+            class="metric-value text-3xl font-bold text-red-400 mt-2 drop-shadow-[0_0_12px_rgba(248,113,113,0.3)]"
+          >
+            +6.2% <span class="text-sm inline-block animate-bounce">▲</span>
+          </p>
+          <p class="text-[11px] text-slate-500 mt-1">(vs last month)</p>
+        </div>
+
+        <!-- KPI Card 3 -->
+        <div
+          id="metric-anomalies-detected"
+          class="glow-effect bg-gradient-to-r from-slate-800/90 via-slate-900/90 to-[#0e1e3e]/90 border border-white/10 rounded-xl p-4 text-center backdrop-blur-sm my-2 shadow-lg hover:-translate-y-1 transition-all duration-300"
+        >
+          <p
+            class="text-xs uppercase tracking-wider text-slate-400 font-semibold"
+          >
+            Active Anomalies Detected
+          </p>
+          <p
+            class="metric-value text-3xl font-bold text-amber-400 mt-2 drop-shadow-[0_0_12px_rgba(251,191,36,0.3)]"
+          >
+            4 Flagged
+          </p>
+          <p class="text-[11px] text-slate-500 mt-1">(4 Flagged High Spikes)</p>
+        </div>
+
+        <!-- KPI Card 4 -->
+        <div
+          id="metric-tracked-routes"
+          class="glow-effect bg-gradient-to-r from-slate-800/90 via-slate-900/90 to-[#0e1e3e]/90 border border-white/10 rounded-xl p-4 text-center backdrop-blur-sm my-2 shadow-lg hover:-translate-y-1 transition-all duration-300"
+        >
+          <p
+            class="text-xs uppercase tracking-wider text-slate-400 font-semibold"
+          >
+            Tracked Metro Routes
+          </p>
+          <p
+            class="metric-value text-3xl font-bold text-emerald-300 mt-2 drop-shadow-[0_0_12px_rgba(110,231,183,0.3)]"
+          >
+            42 Routes
+          </p>
+          <p class="text-[11px] text-slate-500 mt-1">
+            (42 Sectors, 98.4% Uptime)
+          </p>
+        </div>
+      </section>
+
+      <!-- ---------- Charts Grid ---------- -->
+      <section
+        id="charts-grid"
+        class="grid grid-cols-1 lg:grid-cols-2 gap-8 pb-10"
+      >
+        <!-- Chart 1 -->
+        <div
+          class="chart-card bg-gradient-to-r from-[#162444]/90 to-[#070d19]/90 border border-white/10 rounded-xl p-5 shadow-xl hover:border-slate-600/60 transition-all duration-300"
+        >
+          <h2
+            class="text-sm font-semibold text-slate-300 mb-4 flex items-center justify-between"
+          >
+            <span>National & Regional Airfare Price Index Trend</span>
+            <span class="w-2 h-2 rounded-full bg-blue-400 animate-pulse"></span>
+          </h2>
+          <div class="chart-canvas-box">
+            <canvas id="chart-index-trend"></canvas>
+          </div>
+        </div>
+
+        <!-- Heatmap Table -->
+        <div
+          class="chart-card bg-gradient-to-r from-[#162444]/90 to-[#070d19]/90 border border-white/10 rounded-xl p-5 shadow-xl hover:border-slate-600/60 transition-all duration-300"
+        >
+          <h2 class="text-sm font-semibold text-slate-300 mb-4">
+            Sector Volatility Heatmap & Weighted Route Ranking
+          </h2>
+          <div class="chart-canvas-box overflow-y-auto pr-1">
+            <table class="w-full text-xs">
+              <thead>
+                <tr
+                  class="text-left text-slate-400 uppercase tracking-wider text-[10px] border-b border-white/10"
+                >
+                  <th class="pb-2 font-semibold">Route</th>
+                  <th class="pb-2 font-semibold text-right">Weight</th>
+                  <th class="pb-2 font-semibold text-right">30-Day Change</th>
+                </tr>
+              </thead>
+              <tbody id="route-heatmap-body" class="divide-y divide-white/5">
+                <!-- Injected by JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Chart 2 -->
+        <div
+          class="chart-card bg-gradient-to-r from-[#162444]/90 to-[#070d19]/90 border border-white/10 rounded-xl p-5 shadow-xl hover:border-slate-600/60 transition-all duration-300"
+        >
+          <h2 class="text-sm font-semibold text-slate-300 mb-4">
+            Lead-Time Elasticity Curve (Price vs Days-To-Fly)
+          </h2>
+          <div class="chart-canvas-box">
+            <canvas id="chart-lead-time"></canvas>
+          </div>
+        </div>
+
+        <!-- Tabbed Airline & Alerts -->
+        <div
+          class="chart-card bg-gradient-to-r from-[#162444]/90 to-[#070d19]/90 border border-white/10 rounded-xl p-5 shadow-xl hover:border-slate-600/60 transition-all duration-300"
+        >
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-sm font-semibold text-slate-300">
+              Airline Comparison & Live Anomaly Alerts
+            </h2>
+            <div
+              id="alerts-forecast-tabs"
+              class="flex bg-gradient-to-r from-[#070d1a] to-[#0d1730] p-1 rounded-lg border border-white/10 text-xs shadow-inner"
+            >
+              <button
+                data-tab="airlines"
+                id="tab-btn-airlines"
+                class="px-3 py-1 rounded-md bg-gradient-to-r from-blue-600/50 to-blue-600/25 text-blue-300 cursor-pointer transition-all duration-200 shadow-sm font-medium"
+              >
+                Airlines
+              </button>
+              <button
+                data-tab="alerts"
+                id="tab-btn-alerts"
+                class="px-3 py-1 rounded-md text-slate-400 cursor-pointer transition-all duration-200 hover:text-slate-200 font-medium"
+              >
+                Alerts
+              </button>
+            </div>
+          </div>
+          <div
+            id="tab-panel-airlines"
+            class="chart-canvas-box transition-opacity duration-300"
+          >
+            <canvas id="chart-airline-comparison"></canvas>
+          </div>
+          <div
+            id="tab-panel-alerts"
+            class="chart-canvas-box overflow-y-auto hidden pr-1 transition-opacity duration-300"
+          >
+            <ul id="anomaly-alerts-list" class="space-y-2 text-xs">
+              <!-- Injected by JS -->
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- ---------- Footer ---------- -->
+      <footer
+        id="pipeline-footer"
+        class="text-center text-[11px] text-slate-500 p-5 border-t border-white/5 transition-colors duration-300 hover:text-slate-400"
+      >
+        Data Sources: Amadeus API, DGCA Monthly Data | Last Pipeline Run:
+        <span class="text-slate-400 font-medium">10:00 AM IST</span> | API
+        Endpoint:
+        <span class="text-slate-400 font-mono">/api/v1/airfare-index</span>
+      </footer>
+    </main>
+
+    <script src="../api.js"></script>
+    <script src="script.js"></script>
+    <script src="../theme.js"></script>
+  </body>
+</html>

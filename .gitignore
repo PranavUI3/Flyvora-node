@@ -1,0 +1,43 @@
+# Python / backend
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.env
+.env.*
+*.egg-info/
+
+# Databases / local runtime data
+*.db
+*.sqlite3
+
+# Node / frontend dependencies and build output
+node_modules/
+**/node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+coverage/
+.cache/
+.parcel-cache/
+.next/
+.vite/
+dist/
+build/
+**/dist/
+**/build/
+
+# Generated frontend assets
+**/src/output.css
+**/output.css
+
+# Editor / OS files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Logs
+*.log

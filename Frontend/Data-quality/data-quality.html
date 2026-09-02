@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Quality | Airfare Index System</title>
+    <!-- <script src="https://cdn.tailwindcss.com"></script> -->
+    <link href="src/output.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="../theme.css">
+
+    <!--
+        Custom breakpoint tweaks — kept identical to index.html so every
+        page in the dashboard behaves the same way at each size.
+    -->
+    <style>
+        /* ---------- Tablets & small laptops ---------- */
+        @media (max-width: 640px) {
+            #site-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.75rem;
+                padding-top: 1rem;
+                padding-bottom: 1rem;
+            }
+
+            #primary-nav {
+                width: 100%;
+                /* Allow child elements to wrap instead of scrolling horizontally */
+                overflow-x: visible;
+            }
+
+            #primary-nav ul {
+                /* Set width to full container and wrap items */
+                width: 100%;
+                flex-wrap: wrap;
+                justify-content: center;
+                gap: 0.375rem;
+            }
+
+            /* Adjust padding and text size so menu links fit neatly on small screens */
+            #primary-nav a {
+                padding: 0.375rem 0.625rem;
+                font-size: 0.75rem;
+            }
+
+            #brand-title {
+                font-size: 0.9rem;
+            }
+
+            #dashboard-main {
+                padding-left: 1rem;
+                padding-right: 1rem;
+            }
+
+            #route-summary-kpi-grid {
+                gap: 0.75rem;
+            }
+
+            .metric-value {
+                font-size: 1.5rem;
+            }
+        }
+
+        /* Chart canvases need an explicit box or Chart.js will grow forever */
+        .chart-canvas-box {
+            position: relative;
+            height: 12rem;
+            width: 100%;
+        }
+
+        /* Status badge base */
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.15rem 0.55rem;
+            border-radius: 9999px;
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+
+        .status-dot {
+            width: 0.4rem;
+            height: 0.4rem;
+            border-radius: 9999px;
+        }
+
+        /* Fade-in & rise transition for containers */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(16px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Subtle pulse for active/healthy indicators */
+        @keyframes statusPulse {
+
+            0%,
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+
+            50% {
+                opacity: 0.5;
+                transform: scale(1.2);
+            }
+        }
+
+        /* Smooth entry animation class */
+        .animate-fade-in-up {
+            animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        /* Status dot pulsing glow */
+        .status-dot-pulse {
+            animation: statusPulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
+        /* Hover elevation effect for dashboard cards */
+        .interactive-card {
+            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+                box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+                border-color 0.3s ease;
+        }
+
+        .interactive-card:hover {
+            transform: translateY(-4px);
+            border-color: rgba(96, 165, 250, 0.4);
+            box-shadow: 0 12px 30px -10px rgba(15, 23, 42, 0.8),
+                0 4px 15px -2px rgba(59, 130, 246, 0.15);
+        }
+
+        /* Smooth row hover transitions */
+        #pipeline-run-log-body tr,
+        #data-source-status-list li {
+            transition: background-color 0.2s ease, transform 0.2s ease;
+        }
+
+        #pipeline-run-log-body tr:hover {
+            background-color: rgba(255, 255, 255, 0.04);
+        }
+
+        #data-source-status-list li:hover {
+            background-color: rgba(255, 255, 255, 0.06);
+            transform: translateX(3px);
+        }
+    </style>
+</head>
+
+<body
+    class="m-0 p-0 box-border bg-gradient-to-tl from-[#0a1220] via-[#0f1a30] to-[#2a3958] min-h-screen text-slate-100 font-sans antialiased">
+
+    <!-- ============ Site Header ============ -->
+    <header id="site-header"
+        class="w-full bg-gradient-to-r from-[#182338] to-[#0f1729] border-b border-cyan-400/30 shadow-[0_4px_20px_rgba(34,211,238,0.1)] backdrop-blur-md px-8 py-3.5 flex items-center justify-between sticky top-0 z-50">
+
+        <!-- Brand / logo -->
+        <div id="brand-logo" class="flex items-center space-x-3 ml-2">
+            <svg class="w-6 h-6 text-blue-400 drop-shadow-[0_0_8px_rgba(96,165,250,0.4)]" fill="currentColor"
+                viewBox="0 0 24 24">
+                <path
+                    d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z" />
+            </svg>
+            <h1 id="brand-title" class="text-base font-bold tracking-wide uppercase text-slate-100">
+                Airfare Index System <span class="text-xs font-normal text-slate-400 ml-1">(SIH26056)</span>
+            </h1>
+        </div>
+
+        <!-- Primary navigation: maps 1:1 to the 5 dashboard pages -->
+        <nav id="primary-nav"
+            class="flex items-center bg-gradient-to-r from-[#1e293b]/70 to-[#1e293b]/40 p-1.5 rounded-xl border border-white/10 text-sm mr-2">
+            <ul class="flex items-center gap-x-2">
+                <li>
+                    <a id="home"
+                        class="px-4 py-2 rounded-lg text-slate-300 hover:text-white hover:bg-gradient-to-r hover:from-slate-700/50 hover:to-slate-700/20 transition block">Overview</a>
+                </li>
+                <li>
+                    <a id="route"
+                        class="px-4 py-2 rounded-lg text-slate-300 hover:text-white hover:bg-gradient-to-r hover:from-slate-700/50 hover:to-slate-700/20 transition block">Route
+                        Explorer</a>
+                </li>
+                <li>
+                    <a id="lead"
+                        class="px-4 py-2 rounded-lg text-slate-300 hover:text-white hover:bg-gradient-to-r hover:from-slate-700/50 hover:to-slate-700/20 transition block">Lead-Time
+                        Analysis</a>
+                </li>
+                <li>
+                    <a id="airline"
+                        class="px-4 py-2 rounded-lg text-slate-300 hover:text-white hover:bg-gradient-to-r hover:from-slate-700/50 hover:to-slate-700/20 transition block">Airline
+                        Comparison</a>
+                </li>
+                <li>
+                    <a id="quality"
+                        class="px-4 py-2 rounded-lg bg-gradient-to-r from-blue-500/35 to-blue-500/15 text-blue-300 font-medium border border-blue-400/40 shadow-sm block transition">Data
+                        Quality</a>
+                </li>
+            </ul>
+        </nav>
+    </header>
+
+    <!-- ============ Dashboard Main (Data Quality page) ============ -->
+    <main id="dashboard-main" class="w-full px-6 py-4">
+
+
+        </header>
+
+        <!-- ============ Dashboard Main (Data Quality page) ============ -->
+        <main id="dashboard-main" class="w-full px-6 py-4">
+
+            <!-- ---------- Page heading ---------- -->
+            <div class="pt-2 pb-1">
+                <h2 class="text-lg font-bold text-slate-100">Data Quality &amp; Pipeline Transparency</h2>
+                <p class="text-xs text-slate-400 mt-1">Ingestion health, validation results, and freshness of every
+                    source feeding the index.</p>
+            </div>
+
+            <!-- ---------- Filter Bar (scoped to just the date range for this page) ---------- -->
+            <section id="filter-bar"
+                class="w-full bg-gradient-to-r from-[#1e293b]/55 to-[#1e293b]/25 border border-slate-700/50 backdrop-blur-md rounded-xl p-4 my-3 shadow-lg">
+                <div class="flex flex-col lg:flex-row items-center justify-between gap-4">
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full text-xs font-medium">
+
+                        <!-- Filter: date range -->
+                        <div class="relative w-full">
+                            <select name="days" id="filter-date-range"
+                                class="w-full bg-[#1e293b]/80  border border-slate-700/70 text-slate-200 rounded-lg px-3.5 py-2.5 pr-8 appearance-none focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition shadow-sm cursor-pointer">
+                                <option>Last 30 Days</option>
+                                <option>Last 7 Days</option>
+                                <option>Last 90 Days</option>
+                            </select>
+                            <div
+                                class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5 text-slate-400">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M19 9l-7 7-7-7"></path>
+                                </svg>
+                            </div>
+                        </div>
+
+                        <!-- Filter: data source -->
+                        <div class="relative w-full">
+                            <select name="source" id="filter-data-source"
+                                class="w-full bg-[#1e293b]/80  border border-slate-700/70 text-slate-200 rounded-lg px-3.5 py-2.5 pr-8 appearance-none focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition shadow-sm cursor-pointer">
+                                <option>All Sources</option>
+                                <option>Amadeus API</option>
+                                <option>DGCA Monthly Data</option>
+                            </select>
+                            <div
+                                class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5 text-slate-400">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M19 9l-7 7-7-7"></path>
+                                </svg>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- Refresh data button -->
+                    <button id="refresh-data-btn"
+                        class="w-full lg:w-auto flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white font-medium text-xs px-6 py-2.5 rounded-lg transition duration-200 shadow-md hover:shadow-blue-500/20 active:scale-95 whitespace-nowrap cursor-pointer">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
+                            </path>
+                        </svg>
+                        Refresh
+                    </button>
+
+                </div>
+            </section>
+
+            <!-- ---------- Key Metrics ---------- -->
+            <section id="key-metrics-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 p-4 rounded-2xl">
+
+                <!-- KPI: Pipeline Uptime -->
+                <div id="metric-pipeline-uptime"
+                    class="bg-gradient-to-r from-slate-800 via-slate-900 to-[#0e1e3e] border border-white/10 rounded-xl p-4 text-center backdrop-blur-sm my-2 shadow-lg">
+                    <p class="text-xs uppercase tracking-wider text-slate-400 font-semibold">Pipeline Uptime (30d)</p>
+                    <p class="metric-value text-3xl font-bold text-emerald-300 mt-2">98.4%</p>
+                    <p class="text-[11px] text-slate-500 mt-1">2 missed runs of 128 scheduled</p>
+                </div>
+
+                <!-- KPI: Records Ingested -->
+                <div id="metric-records-ingested"
+                    class="bg-gradient-to-r from-slate-800 via-slate-900 to-[#0e1e3e] border border-white/10 rounded-xl p-4 text-center backdrop-blur-sm my-2 shadow-lg">
+                    <p class="text-xs uppercase tracking-wider text-slate-400 font-semibold">Records Ingested (Last Run)
+                    </p>
+                    <p class="metric-value text-3xl font-bold text-blue-300 mt-2">18,942</p>
+                    <p class="text-[11px] text-slate-500 mt-1">Across 42 tracked routes</p>
+                </div>
+
+                <!-- KPI: Validation Failures -->
+                <div id="metric-validation-failures"
+                    class="bg-gradient-to-r from-slate-800 via-slate-900 to-[#0e1e3e] border border-white/10 rounded-xl p-4 text-center backdrop-blur-sm my-2 shadow-lg">
+                    <p class="text-xs uppercase tracking-wider text-slate-400 font-semibold">Validation Failures (24h)
+                    </p>
+                    <p class="metric-value text-3xl font-bold text-amber-400 mt-2">12 Rows</p>
+                    <p class="text-[11px] text-slate-500 mt-1">0.06% of ingested records</p>
+                </div>
+
+                <!-- KPI: Last Successful Run -->
+                <div id="metric-last-run"
+                    class="bg-gradient-to-r from-slate-800 via-slate-900 to-[#0e1e3e] border border-white/10 rounded-xl p-4 text-center backdrop-blur-sm my-2 shadow-lg">
+                    <p class="text-xs uppercase tracking-wider text-slate-400 font-semibold">Last Successful Run</p>
+                    <p class="metric-value text-3xl font-bold text-slate-100 mt-2">10:00 AM</p>
+                    <p class="text-[11px] text-slate-500 mt-1">IST · Next run in 5h 42m</p>
+                </div>
+            </section>
+
+            <!-- ---------- Charts & Analysis Grid ---------- -->
+            <section id="charts-grid" class="grid grid-cols-1 lg:grid-cols-2 gap-10 pb-10">
+
+                <!-- Chart: Ingestion volume over time -->
+                <div
+                    class="chart-card bg-gradient-to-r from-[#162444] to-[#070d19] border border-white/10 rounded-xl p-5">
+                    <h2 class="text-sm font-semibold text-slate-300 mb-4">Daily Ingestion Volume (Last 30 Days)</h2>
+                    <div class="chart-canvas-box">
+                        <canvas id="chart-ingestion-volume"></canvas>
+                    </div>
+                </div>
+
+                <!-- Chart: Validation pass/fail rate -->
+                <div
+                    class="chart-card bg-gradient-to-r from-[#162444] to-[#070d19] border border-white/10 rounded-xl p-5">
+                    <h2 class="text-sm font-semibold text-slate-300 mb-4">Validation Pass Rate (Last 30 Days)</h2>
+                    <div class="chart-canvas-box">
+                        <canvas id="chart-validation-rate"></canvas>
+                    </div>
+                </div>
+
+                <!-- Data source status list -->
+                <div
+                    class="chart-card bg-gradient-to-r from-[#162444] to-[#070d19] border border-white/10 rounded-xl p-5">
+                    <h2 class="text-sm font-semibold text-slate-300 mb-4">Data Source Status</h2>
+                    <div class="chart-canvas-box overflow-y-auto">
+                        <ul id="data-source-status-list" class="space-y-2 text-xs">
+                            <!-- rows injected by data-quality.js -->
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Pipeline run log -->
+                <div
+                    class="chart-card bg-gradient-to-r from-[#162444] to-[#070d19] border border-white/10 rounded-xl p-5">
+                    <h2 class="text-sm font-semibold text-slate-300 mb-4">Recent Pipeline Runs</h2>
+                    <div class="chart-canvas-box overflow-y-auto">
+                        <table class="w-full text-xs">
+                            <thead>
+                                <tr class="text-left text-slate-400 uppercase tracking-wider text-[10px]">
+                                    <th class="pb-2 font-semibold">Run Time</th>
+                                    <th class="pb-2 font-semibold">Status</th>
+                                    <th class="pb-2 font-semibold text-right">Records</th>
+                                    <th class="pb-2 font-semibold text-right">Duration</th>
+                                </tr>
+                            </thead>
+                            <tbody id="pipeline-run-log-body" class="divide-y divide-white/5">
+                                <!-- rows injected by data-quality.js -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </section>
+
+            <!-- ---------- Footer / Pipeline Metadata ---------- -->
+            <footer id="pipeline-footer" class="text-center text-[11px] text-slate-500 p-5 border-t border-white/5 ">
+                Data Sources: Amadeus API, DGCA Monthly Data | Last Pipeline Run: <span class="text-slate-400">10:00 AM
+                    IST</span> | API Endpoint: <span class="text-slate-400">/api/v1/data-quality</span>
+            </footer>
+        </main>
+
+        <script src="../api.js"></script>
+        <script src="data-quality.js"></script>
+</body>
+
+    <script src="../theme.js"></script>
+</html>

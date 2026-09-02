@@ -1,0 +1,413 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lead-Time Analysis | Airfare Index System</title>
+  <!-- <script src="https://cdn.tailwindcss.com"></script> -->
+  <link href="src/output.css" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="../theme.css" />
+
+  <style>
+    /* ---------- Base & Layout Keyframes ---------- */
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(16px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .animate-fade-in-up {
+      animation: fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    /* Staggered Delay Utilities */
+    .delay-100 {
+      animation-delay: 100ms;
+    }
+
+    .delay-200 {
+      animation-delay: 200ms;
+    }
+
+    .delay-300 {
+      animation-delay: 300ms;
+    }
+
+    .delay-400 {
+      animation-delay: 400ms;
+    }
+
+    /* ---------- Card & Glassmorphism UI Effects ---------- */
+    .glass-card {
+      background: linear-gradient(135deg,
+          rgba(22, 36, 68, 0.8),
+          rgba(7, 13, 25, 0.9));
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      transition:
+        transform 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+        box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+        border-color 0.3s ease;
+    }
+
+    .glass-card:hover {
+      transform: translateY(-3px);
+      border-color: rgba(96, 165, 250, 0.3);
+      box-shadow:
+        0 12px 28px -6px rgba(15, 23, 42, 0.6),
+        0 0 15px 0 rgba(96, 165, 250, 0.15);
+    }
+
+    /* ---------- Table Staggered Row Entry ---------- */
+    .checkpoint-row {
+      opacity: 0;
+      transform: translateX(-10px);
+      animation: slideInRow 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    @keyframes slideInRow {
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    /* ---------- Tablets & small laptops ---------- */
+    @media (max-width: 640px) {
+      #site-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+        padding-top: 1rem;
+        padding-bottom: 1rem;
+      }
+
+      #primary-nav {
+        width: 100%;
+        /* Allow child elements to wrap instead of scrolling horizontally */
+        overflow-x: visible;
+      }
+
+      #primary-nav ul {
+        /* Set width to full container and wrap items */
+        width: 100%;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 0.375rem;
+      }
+
+      /* Adjust padding and text size so menu links fit neatly on small screens */
+      #primary-nav a {
+        padding: 0.375rem 0.625rem;
+        font-size: 0.75rem;
+      }
+
+      #brand-title {
+        font-size: 0.9rem;
+      }
+
+      #dashboard-main {
+        padding-left: 1rem;
+        padding-right: 1rem;
+      }
+
+      #route-summary-kpi-grid {
+        gap: 0.75rem;
+      }
+
+      .metric-value {
+        font-size: 1.5rem;
+      }
+    }
+
+    /* Chart canvases box styling */
+    .chart-canvas-box {
+      position: relative;
+      height: 12rem;
+      width: 100%;
+    }
+
+    .chart-canvas-box-lg {
+      position: relative;
+      height: 20rem;
+      width: 100%;
+    }
+  </style>
+</head>
+
+<body
+  class="m-0 p-0 box-border bg-gradient-to-tl from-[#0a1220] via-[#0f1a30] to-[#2a3958] min-h-screen text-slate-100 font-sans antialiased selection:bg-cyan-500 selection:text-white">
+  <!-- ============ Site Header ============ -->
+  <header id="site-header"
+    class="w-full bg-gradient-to-r from-[#182338]/90 to-[#0f1729]/90 border-b border-cyan-400/30 shadow-[0_4px_20px_rgba(34,211,238,0.1)] backdrop-blur-md px-8 py-3.5 flex items-center justify-between sticky top-0 z-50 transition-all duration-300">
+    <!-- Brand / logo -->
+    <div id="brand-logo" class="flex items-center space-x-3 ml-2 group cursor-pointer">
+      <svg
+        class="w-6 h-6 text-blue-400 drop-shadow-[0_0_8px_rgba(96,165,250,0.4)] group-hover:scale-110 group-hover:rotate-12 transition-transform duration-300 ease-out"
+        fill="currentColor" viewBox="0 0 24 24">
+        <path
+          d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z" />
+      </svg>
+      <h1 id="brand-title"
+        class="text-base font-bold tracking-wide uppercase text-slate-100 group-hover:text-blue-200 transition-colors duration-300">
+        Airfare Index System
+        <span class="text-xs font-normal text-slate-400 ml-1">(SIH26056)</span>
+      </h1>
+    </div>
+
+    <!-- Primary navigation -->
+    <nav id="primary-nav"
+      class="flex items-center bg-gradient-to-r from-[#1e293b]/70 to-[#1e293b]/40 p-1.5 rounded-xl border border-white/10 text-sm mr-2 shadow-inner">
+      <ul class="flex items-center gap-x-2">
+        <li>
+          <a id="home"
+            class="px-4 py-2 rounded-lg text-slate-300 hover:text-white hover:bg-slate-700/50 transition-all duration-200 ease-in-out block">Overview</a>
+        </li>
+        <li>
+          <a id="route"
+            class="px-4 py-2 rounded-lg text-slate-300 hover:text-white hover:bg-slate-700/50 transition-all duration-200 ease-in-out block">Route
+            Explorer</a>
+        </li>
+        <li>
+          <a id="lead"
+            class="px-4 py-2 rounded-lg bg-gradient-to-r from-blue-500/35 to-blue-500/15 text-blue-300 font-medium border border-blue-400/40 shadow-sm block transition-all duration-300 scale-[1.02]">Lead-Time
+            Analysis</a>
+        </li>
+        <li>
+          <a id="airline"
+            class="px-4 py-2 rounded-lg text-slate-300 hover:text-white hover:bg-slate-700/50 transition-all duration-200 ease-in-out block">Airline
+            Comparison</a>
+        </li>
+        <li>
+          <a id="quality"
+            class="px-4 py-2 rounded-lg text-slate-300 hover:text-white hover:bg-slate-700/50 transition-all duration-200 ease-in-out block">Data
+            Quality</a>
+        </li>
+      </ul>
+    </nav>
+  </header>
+
+  <!-- ============ Dashboard Main ============ -->
+  <main id="dashboard-main" class="w-full px-6 py-4">
+    <!-- ---------- Page heading ---------- -->
+    <div class="pt-2 pb-1 animate-fade-in-up">
+      <h2 class="text-lg font-bold text-slate-100 tracking-tight">
+        Lead-Time Analysis
+      </h2>
+      <p class="text-xs text-slate-400 mt-1">
+        How fares move from T+45 (45 days before departure) down to T+1 —
+        pinpointing the elasticity of price against booking window.
+      </p>
+    </div>
+
+    <!-- ---------- Filter Bar ---------- -->
+    <section id="filter-bar"
+      class="w-full bg-gradient-to-r from-[#1e293b]/60 to-[#1e293b]/30 border border-slate-700/50 backdrop-blur-md rounded-xl p-4 my-3 shadow-lg animate-fade-in-up delay-100">
+      <div class="flex flex-col lg:flex-row items-center justify-between gap-4">
+        <!-- Filter dropdowns -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4 w-full text-xs font-medium">
+          <div class="relative w-full xl:col-span-2 group">
+            <select name="route" id="filter-route"
+              class="w-full bg-[#1e293b]/80 border border-slate-700/70 text-slate-200 rounded-lg px-3.5 py-2.5 pr-8 appearance-none focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-500/30 transition-all duration-200 shadow-sm cursor-pointer hover:border-slate-500">
+              <option>DEL → BOM</option>
+              <option>BLR → DEL</option>
+              <option>BOM → BLR</option>
+              <option>DEL → MAA</option>
+              <option>CCU → DEL</option>
+            </select>
+            <div
+              class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5 text-slate-400 group-hover:text-blue-400 transition-colors">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+              </svg>
+            </div>
+          </div>
+
+          <div class="relative w-full group">
+            <select name="class" id="filter-travel-class"
+              class="w-full bg-[#1e293b]/80 border border-slate-700/70 text-slate-200 rounded-lg px-3.5 py-2.5 pr-8 appearance-none focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-500/30 transition-all duration-200 shadow-sm cursor-pointer hover:border-slate-500">
+              <option>Economy</option>
+              <option>Business</option>
+              <option>First Class</option>
+            </select>
+            <div
+              class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5 text-slate-400 group-hover:text-blue-400 transition-colors">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+              </svg>
+            </div>
+          </div>
+
+          <div class="relative w-full group">
+            <select name="airlines" id="filter-airline"
+              class="w-full bg-[#1e293b]/80 border border-slate-700/70 text-slate-200 rounded-lg px-3.5 py-2.5 pr-8 appearance-none focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-500/30 transition-all duration-200 shadow-sm cursor-pointer hover:border-slate-500">
+              <option>All Airlines</option>
+              <option>IndiGo</option>
+              <option>Air India</option>
+              <option>SpiceJet</option>
+            </select>
+            <div
+              class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5 text-slate-400 group-hover:text-blue-400 transition-colors">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+              </svg>
+            </div>
+          </div>
+
+          <div class="relative w-full group">
+            <select name="window" id="filter-booking-window"
+              class="w-full bg-[#1e293b]/80 border border-slate-700/70 text-slate-200 rounded-lg px-3.5 py-2.5 pr-8 appearance-none focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-500/30 transition-all duration-200 shadow-sm cursor-pointer hover:border-slate-500">
+              <option>T-45 → T-1</option>
+              <option>T-21 → T-1</option>
+              <option>T-7 → T-1</option>
+            </select>
+            <div
+              class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5 text-slate-400 group-hover:text-blue-400 transition-colors">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <!-- Refresh button -->
+        <button id="refresh-data-btn"
+          class="w-full lg:w-auto flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white font-medium text-xs px-6 py-2.5 rounded-lg transition-all duration-300 shadow-md hover:shadow-blue-500/30 active:scale-95 cursor-pointer">
+          <svg id="refresh-icon" class="w-4 h-4 transition-transform duration-500" fill="none" stroke="currentColor"
+            viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
+            </path>
+          </svg>
+          <span>Refresh</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- ---------- Key Metrics Grid ---------- -->
+    <section id="key-metrics-grid"
+      class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 p-4 rounded-2xl animate-fade-in-up delay-200">
+      <div id="metric-optimal-window" class="glass-card rounded-xl p-4 text-center my-2">
+        <p class="text-xs uppercase tracking-wider text-slate-400 font-semibold">
+          Optimal Booking Window
+        </p>
+        <p class="metric-value text-3xl font-bold text-emerald-300 mt-2 tracking-tight">
+          T-21 to T-18
+        </p>
+        <p class="text-[11px] text-slate-500 mt-1">
+          Lowest average fare observed
+        </p>
+      </div>
+
+      <div id="metric-last-week-surge" class="glass-card rounded-xl p-4 text-center my-2">
+        <p class="text-xs uppercase tracking-wider text-slate-400 font-semibold">
+          Price Surge (Final 7 Days)
+        </p>
+        <p class="metric-value text-3xl font-bold text-red-400 mt-2 tracking-tight">
+          +38.6% <span class="text-sm inline-block animate-bounce">▲</span>
+        </p>
+        <p class="text-[11px] text-slate-500 mt-1">T-7 vs T-1 average fare</p>
+      </div>
+
+      <div id="metric-elasticity-coefficient" class="glass-card rounded-xl p-4 text-center my-2">
+        <p class="text-xs uppercase tracking-wider text-slate-400 font-semibold">
+          Elasticity Coefficient
+        </p>
+        <p class="metric-value text-3xl font-bold text-blue-300 mt-2 tracking-tight">
+          0.83
+        </p>
+        <p class="text-[11px] text-slate-500 mt-1">
+          % price change per day closer to departure
+        </p>
+      </div>
+
+      <div id="metric-cheapest-checkpoint" class="glass-card rounded-xl p-4 text-center my-2">
+        <p class="text-xs uppercase tracking-wider text-slate-400 font-semibold">
+          Cheapest Checkpoint
+        </p>
+        <p class="metric-value text-3xl font-bold text-amber-300 mt-2 tracking-tight">
+          T-45 Days
+        </p>
+        <p class="text-[11px] text-slate-500 mt-1">
+          ₹4,120 avg — DEL → BOM, Economy
+        </p>
+      </div>
+    </section>
+
+    <!-- ---------- Charts & Analysis Grid ---------- -->
+    <section id="charts-grid" class="grid grid-cols-1 gap-10 pb-10 animate-fade-in-up delay-300">
+      <!-- Hero Chart -->
+      <div class="chart-card glass-card rounded-xl p-5">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-sm font-semibold text-slate-300">
+            Lead-Time Elasticity Curve — Price vs Days-To-Departure (T+45 →
+            T+1)
+          </h2>
+          <span
+            class="text-[10px] uppercase tracking-wider text-slate-400 bg-white/5 px-2.5 py-1 rounded border border-white/10 shadow-sm">
+            DEL → BOM · Economy
+          </span>
+        </div>
+        <div class="chart-canvas-box-lg">
+          <canvas id="chart-lead-time-elasticity"></canvas>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-10">
+        <!-- Breakdown Table -->
+        <div class="chart-card glass-card rounded-xl p-5">
+          <h2 class="text-sm font-semibold text-slate-300 mb-4">
+            Checkpoint Price Breakdown
+          </h2>
+          <div class="chart-canvas-box overflow-y-auto pr-1 custom-scrollbar">
+            <table class="w-full text-xs">
+              <thead>
+                <tr class="text-left text-slate-400 uppercase tracking-wider text-[10px] border-b border-white/10">
+                  <th class="pb-2.5 font-semibold">Days To Departure</th>
+                  <th class="pb-2.5 font-semibold text-right">Avg Fare</th>
+                  <th class="pb-2.5 font-semibold text-right">Δ vs T-45</th>
+                </tr>
+              </thead>
+              <tbody id="checkpoint-breakdown-body" class="divide-y divide-white/5">
+                <!-- Dynamic rows injected by JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Comparison Chart -->
+        <div class="chart-card glass-card rounded-xl p-5">
+          <h2 class="text-sm font-semibold text-slate-300 mb-4">
+            Elasticity Comparison Across Top Routes
+          </h2>
+          <div class="chart-canvas-box">
+            <canvas id="chart-route-elasticity-comparison"></canvas>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ---------- Footer ---------- -->
+    <footer id="pipeline-footer"
+      class="text-center text-[11px] text-slate-500 p-5 border-t border-white/5 animate-fade-in-up delay-400">
+      Data Sources: Amadeus API, DGCA Monthly Data | Last Pipeline Run:
+      <span class="text-slate-400 font-medium">10:00 AM IST</span> | API
+      Endpoint:
+      <span class="text-slate-400 font-mono">/api/v1/lead-time-elasticity</span>
+    </footer>
+  </main>
+
+  <script src="../api.js"></script>
+  <script src="lead-time.js"></script>
+</body>
+
+    <script src="../theme.js"></script>
+</html>
