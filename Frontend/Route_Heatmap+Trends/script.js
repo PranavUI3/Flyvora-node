@@ -14,37 +14,76 @@ document.addEventListener("DOMContentLoaded", () => {
   const heatmapBody = document.getElementById("route-heatmap-body");
   const metric = (id) => document.querySelector(`#${id} .metric-value`);
 
-  function days() { return dateRangePicker?.value.match(/\d+/)?.[0] || 30; }
+  function days() {
+    return dateRangePicker?.value.match(/\d+/)?.[0] || 30;
+  }
   function renderRanking(rows) {
     if (!heatmapBody) return;
-    heatmapBody.innerHTML = rows.map((row) => `<tr class="hover:bg-slate-700/30 transition-colors"><td class="py-2.5 font-medium">${row.route}</td><td class="py-2.5 text-right text-slate-400">${row.weight}</td><td class="py-2.5 text-right font-semibold ${row.change >= 0 ? "text-red-400" : "text-emerald-400"}">${row.change >= 0 ? "+" : ""}${row.change}%</td></tr>`).join("");
+    heatmapBody.innerHTML = rows
+      .map(
+        (row) =>
+          `<tr class="hover:bg-slate-700/30 transition-colors"><td class="py-2.5 font-medium">${row.route}</td><td class="py-2.5 text-right text-slate-400">${row.weight}</td><td class="py-2.5 text-right font-semibold ${row.change >= 0 ? "text-red-400" : "text-emerald-400"}">${row.change >= 0 ? "+" : ""}${row.change}%</td></tr>`,
+      )
+      .join("");
   }
   async function updateRoute(routeCode) {
-    const data = await FlyvoraApi.get(`/routes/${encodeURIComponent(routeCode)}/summary`, { days: days() });
+    const data = await FlyvoraApi.get(
+      `/routes/${encodeURIComponent(routeCode)}/summary`,
+      { days: days() },
+    );
     metric("kpi-avg-fare").textContent = data.avgFare;
     metric("kpi-index-weight").textContent = data.weight;
     metric("kpi-observations").textContent = data.observations;
     const change = metric("kpi-30day-change");
     change.textContent = `${data.change30D} ${data.changeTrend === "up" ? "▲" : "▼"}`;
     change.className = `metric-value text-3xl font-bold mt-2 ${data.changeTrend === "up" ? "text-red-400" : "text-emerald-400"}`;
-    const title = document.querySelector("#price-trend-card h2"); if (title) title.textContent = `Price Trend - ${data.name} vs National Avg`;
-    const header = document.querySelector("#airline-breakdown-header h3"); if (header) header.textContent = `Airline Breakdown - ${data.name}`;
-    const airlineTiles = { indigo: "airline-tile-indigo", airIndia: "airline-tile-air-india", spicejet: "airline-tile-spicejet", akasa: "airline-tile-akasa" };
-    Object.entries(airlineTiles).forEach(([key, id]) => { const tile = metric(id); if (tile) tile.textContent = data.airlines[key] || "-"; });
+    const title = document.querySelector("#price-trend-card h2");
+    if (title) title.textContent = `Price Trend - ${data.name} vs National Avg`;
+    const header = document.querySelector("#airline-breakdown-header h3");
+    if (header) header.textContent = `Airline Breakdown - ${data.name}`;
+    const airlineTiles = {
+      indigo: "airline-tile-indigo",
+      airIndia: "airline-tile-air-india",
+      spicejet: "airline-tile-spicejet",
+      akasa: "airline-tile-akasa",
+    };
+    Object.entries(airlineTiles).forEach(([key, id]) => {
+      const tile = metric(id);
+      if (tile) tile.textContent = data.airlines[key] || "-";
+    });
     const activeChart = Chart.getChart("chart-price-trend");
-    if (activeChart) { activeChart.data.labels = data.labels; activeChart.data.datasets[0].label = data.name; activeChart.data.datasets[0].data = data.routePrices; activeChart.data.datasets[1].data = data.nationalAvgPrices; activeChart.update(); }
+    if (activeChart) {
+      activeChart.data.labels = data.labels;
+      activeChart.data.datasets[0].label = data.name;
+      activeChart.data.datasets[0].data = data.routePrices;
+      activeChart.data.datasets[1].data = data.nationalAvgPrices;
+      activeChart.update();
+    }
   }
   async function load() {
-    const [routes, ranking] = await Promise.all([FlyvoraApi.get("/routes"), FlyvoraApi.get("/routes/ranking", { days: days() })]);
+    const [routes, ranking] = await Promise.all([
+      FlyvoraApi.get("/routes"),
+      FlyvoraApi.get("/routes/ranking", { days: days() }),
+    ]);
     if (routePicker) {
-      routePicker.innerHTML = routes.map((item) => `<option value="${item.code}">${item.label}</option>`).join("");
+      routePicker.innerHTML = routes
+        .map((item) => `<option value="${item.code}">${item.label}</option>`)
+        .join("");
       await updateRoute(routePicker.value);
     }
     renderRanking(ranking);
   }
-  routePicker?.addEventListener("change", () => updateRoute(routePicker.value).catch((error) => console.error("Unable to load route", error)));
-  dateRangePicker?.addEventListener("change", () => load().catch((error) => console.error("Unable to load routes", error)));
-  load().catch((error) => console.error("Unable to load route explorer", error));
+  routePicker?.addEventListener("change", () =>
+    updateRoute(routePicker.value).catch((error) =>
+      console.error("Unable to load route", error),
+    ),
+  );
+  dateRangePicker?.addEventListener("change", () =>
+    load().catch((error) => console.error("Unable to load routes", error)),
+  );
+  load().catch((error) =>
+    console.error("Unable to load route explorer", error),
+  );
 });
 
 route.addEventListener("click", () => {

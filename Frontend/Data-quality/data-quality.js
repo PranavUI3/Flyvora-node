@@ -1,20 +1,140 @@
-const nav = { home: "../Overview/index.html", route: "../Route_Heatmap+Trends/routeheatmap.html", lead: "../Lead-Time/lead-time.html", airline: "../Airline/airline-comparison.html", quality: "data-quality.html" };
-Object.entries(nav).forEach(([id, href]) => document.getElementById(id)?.addEventListener("click", () => { window.location.href = href; }));
+const nav = {
+  home: "../Overview/index.html",
+  route: "../Route_Heatmap+Trends/routeheatmap.html",
+  lead: "../Lead-Time/lead-time.html",
+  airline: "../Airline/airline-comparison.html",
+  quality: "data-quality.html",
+};
+Object.entries(nav).forEach(([id, href]) =>
+  document.getElementById(id)?.addEventListener("click", () => {
+    window.location.href = href;
+  }),
+);
 Chart.defaults.color = "#94a3b8";
-let ingestionChart; let validationChart;
+let ingestionChart;
+let validationChart;
 const number = (value) => Math.round(value || 0).toLocaleString("en-IN");
-function duration(seconds) { const value = Math.round(seconds || 0); return `${Math.floor(value / 60)}m ${value % 60}s`; }
-function updateMetric(id, value) { const element = document.querySelector(`#${id} .metric-value`); if (element) element.textContent = value; }
-function renderSources(sources) { const list = document.getElementById("data-source-status-list"); if (!list) return; list.innerHTML = sources.map((source) => `<li class="flex items-center justify-between bg-white/[0.03] border border-white/5 rounded-lg px-3.5 py-2.5"><div><p class="text-slate-200 font-medium">${source.name}</p><p class="text-[11px] text-slate-500 mt-0.5">${source.detail || "No detail available"}</p></div><span class="status-badge text-blue-300 bg-blue-500/10 border border-blue-400/30">${source.status}</span></li>`).join(""); }
-function renderRuns(runs) { const body = document.getElementById("pipeline-run-log-body"); if (!body) return; body.innerHTML = runs.map((run) => { const tone = run.status === "Success" ? "text-emerald-400" : run.status === "Failed" ? "text-red-400" : "text-amber-400"; return `<tr class="text-slate-300"><td class="py-2.5">${new Date(run.time).toLocaleString("en-IN")}</td><td class="py-2.5 font-medium ${tone}">${run.status}</td><td class="py-2.5 text-right">${number(run.records)}</td><td class="py-2.5 text-right text-slate-400">${duration(run.durationSeconds)}</td></tr>`; }).join(""); }
-async function loadDashboard() {
-  const days = document.getElementById("filter-date-range")?.value.match(/\d+/)?.[0] || 30;
-  const [summary, volume, validation, sources, runs] = await Promise.all([FlyvoraApi.get("/data-quality/summary"), FlyvoraApi.get("/data-quality/ingestion-volume", { days }), FlyvoraApi.get("/data-quality/validation-rate"), FlyvoraApi.get("/data-quality/sources"), FlyvoraApi.get("/data-quality/runs")]);
-  updateMetric("metric-pipeline-uptime", summary.pipelineUptime); updateMetric("metric-records-ingested", number(summary.recordsIngested)); updateMetric("metric-validation-failures", `${number(summary.validationFailures)} Rows`); updateMetric("metric-last-run", summary.lastRun ? new Date(summary.lastRun).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }) : "No runs");
-  ingestionChart?.destroy(); validationChart?.destroy();
-  const ingestionCanvas = document.getElementById("chart-ingestion-volume"); if (ingestionCanvas) ingestionChart = new Chart(ingestionCanvas, { type: "bar", data: { labels: volume.map((item) => item.label), datasets: [{ label: "Records ingested", data: volume.map((item) => item.records), backgroundColor: "rgba(96,165,250,.65)", borderRadius: 4 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { maxTicksLimit: 10 } }, y: { ticks: { callback: number } } } } });
-  const validationCanvas = document.getElementById("chart-validation-rate"); if (validationCanvas) validationChart = new Chart(validationCanvas, { type: "doughnut", data: { labels: ["Passed", "Warned", "Failed"], datasets: [{ data: [validation.passed, validation.warned, validation.failed], backgroundColor: ["#34d399cc", "#fbbf24cc", "#f87171cc"], borderColor: "#0f172a", borderWidth: 2 }] }, options: { responsive: true, maintainAspectRatio: false, cutout: "65%" } });
-  renderSources(sources); renderRuns(runs);
+function duration(seconds) {
+  const value = Math.round(seconds || 0);
+  return `${Math.floor(value / 60)}m ${value % 60}s`;
 }
-async function refresh() { const button = document.getElementById("refresh-data-btn"); const icon = button?.querySelector("svg"); button?.setAttribute("disabled", ""); icon?.classList.add("animate-spin"); try { await loadDashboard(); } catch (error) { console.error("Unable to load data quality dashboard", error); } finally { button?.removeAttribute("disabled"); icon?.classList.remove("animate-spin"); } }
-document.getElementById("filter-date-range")?.addEventListener("change", refresh); document.getElementById("refresh-data-btn")?.addEventListener("click", refresh); refresh();
+function updateMetric(id, value) {
+  const element = document.querySelector(`#${id} .metric-value`);
+  if (element) element.textContent = value;
+}
+function renderSources(sources) {
+  const list = document.getElementById("data-source-status-list");
+  if (!list) return;
+  list.innerHTML = sources
+    .map(
+      (source) =>
+        `<li class="flex items-center justify-between bg-white/[0.03] border border-white/5 rounded-lg px-3.5 py-2.5"><div><p class="text-slate-200 font-medium">${source.name}</p><p class="text-[11px] text-slate-500 mt-0.5">${source.detail || "No detail available"}</p></div><span class="status-badge text-blue-300 bg-blue-500/10 border border-blue-400/30">${source.status}</span></li>`,
+    )
+    .join("");
+}
+function renderRuns(runs) {
+  const body = document.getElementById("pipeline-run-log-body");
+  if (!body) return;
+  body.innerHTML = runs
+    .map((run) => {
+      const tone =
+        run.status === "Success"
+          ? "text-emerald-400"
+          : run.status === "Failed"
+            ? "text-red-400"
+            : "text-amber-400";
+      return `<tr class="text-slate-300"><td class="py-2.5">${new Date(run.time).toLocaleString("en-IN")}</td><td class="py-2.5 font-medium ${tone}">${run.status}</td><td class="py-2.5 text-right">${number(run.records)}</td><td class="py-2.5 text-right text-slate-400">${duration(run.durationSeconds)}</td></tr>`;
+    })
+    .join("");
+}
+async function loadDashboard() {
+  const days =
+    document.getElementById("filter-date-range")?.value.match(/\d+/)?.[0] || 30;
+  const [summary, volume, validation, sources, runs] = await Promise.all([
+    FlyvoraApi.get("/data-quality/summary"),
+    FlyvoraApi.get("/data-quality/ingestion-volume", { days }),
+    FlyvoraApi.get("/data-quality/validation-rate"),
+    FlyvoraApi.get("/data-quality/sources"),
+    FlyvoraApi.get("/data-quality/runs"),
+  ]);
+  updateMetric("metric-pipeline-uptime", summary.pipelineUptime);
+  updateMetric("metric-records-ingested", number(summary.recordsIngested));
+  updateMetric(
+    "metric-validation-failures",
+    `${number(summary.validationFailures)} Rows`,
+  );
+  updateMetric(
+    "metric-last-run",
+    summary.lastRun
+      ? new Date(summary.lastRun).toLocaleTimeString("en-IN", {
+          hour: "2-digit",
+          minute: "2-digit",
+        })
+      : "No runs",
+  );
+  ingestionChart?.destroy();
+  validationChart?.destroy();
+  const ingestionCanvas = document.getElementById("chart-ingestion-volume");
+  if (ingestionCanvas)
+    ingestionChart = new Chart(ingestionCanvas, {
+      type: "bar",
+      data: {
+        labels: volume.map((item) => item.label),
+        datasets: [
+          {
+            label: "Records ingested",
+            data: volume.map((item) => item.records),
+            backgroundColor: "rgba(96,165,250,.65)",
+            borderRadius: 4,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { ticks: { maxTicksLimit: 10 } },
+          y: { ticks: { callback: number } },
+        },
+      },
+    });
+  const validationCanvas = document.getElementById("chart-validation-rate");
+  if (validationCanvas)
+    validationChart = new Chart(validationCanvas, {
+      type: "doughnut",
+      data: {
+        labels: ["Passed", "Warned", "Failed"],
+        datasets: [
+          {
+            data: [validation.passed, validation.warned, validation.failed],
+            backgroundColor: ["#34d399cc", "#fbbf24cc", "#f87171cc"],
+            borderColor: "#0f172a",
+            borderWidth: 2,
+          },
+        ],
+      },
+      options: { responsive: true, maintainAspectRatio: false, cutout: "65%" },
+    });
+  renderSources(sources);
+  renderRuns(runs);
+}
+async function refresh() {
+  const button = document.getElementById("refresh-data-btn");
+  const icon = button?.querySelector("svg");
+  button?.setAttribute("disabled", "");
+  icon?.classList.add("animate-spin");
+  try {
+    await loadDashboard();
+  } catch (error) {
+    console.error("Unable to load data quality dashboard", error);
+  } finally {
+    button?.removeAttribute("disabled");
+    icon?.classList.remove("animate-spin");
+  }
+}
+document
+  .getElementById("filter-date-range")
+  ?.addEventListener("change", refresh);
+document.getElementById("refresh-data-btn")?.addEventListener("click", refresh);
+refresh();
