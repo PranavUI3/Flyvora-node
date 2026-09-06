@@ -5,7 +5,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Data Quality | Airfare Index System</title>
-    <!-- <script src="https://cdn.tailwindcss.com"></script> -->
     <link href="src/output.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="../theme.css">
@@ -317,6 +316,34 @@
                     <p class="text-xs uppercase tracking-wider text-slate-400 font-semibold">Last Successful Run</p>
                     <p class="metric-value text-3xl font-bold text-slate-100 mt-2">10:00 AM</p>
                     <p class="text-[11px] text-slate-500 mt-1">IST · Next run in 5h 42m</p>
+                </div>
+            </section>
+
+            <!-- ---------- Live Collection Status (SerpApi provider) ---------- -->
+            <section id="live-collection-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 p-4 rounded-2xl">
+                <div id="metric-provider-status"
+                    class="bg-gradient-to-r from-slate-800 via-slate-900 to-[#0e1e3e] border border-white/10 rounded-xl p-4 text-center backdrop-blur-sm my-2 shadow-lg">
+                    <p class="text-xs uppercase tracking-wider text-slate-400 font-semibold">Live Provider (SerpApi)</p>
+                    <p class="metric-value text-3xl font-bold text-slate-100 mt-2">—</p>
+                    <p class="text-[11px] text-slate-500 mt-1">Loading…</p>
+                </div>
+                <div id="metric-last-collection"
+                    class="bg-gradient-to-r from-slate-800 via-slate-900 to-[#0e1e3e] border border-white/10 rounded-xl p-4 text-center backdrop-blur-sm my-2 shadow-lg">
+                    <p class="text-xs uppercase tracking-wider text-slate-400 font-semibold">Last Collection Run</p>
+                    <p class="metric-value text-3xl font-bold text-slate-100 mt-2">—</p>
+                    <p class="text-[11px] text-slate-500 mt-1">Loading…</p>
+                </div>
+                <div id="metric-next-run"
+                    class="bg-gradient-to-r from-slate-800 via-slate-900 to-[#0e1e3e] border border-white/10 rounded-xl p-4 text-center backdrop-blur-sm my-2 shadow-lg">
+                    <p class="text-xs uppercase tracking-wider text-slate-400 font-semibold">Next Scheduled Collection</p>
+                    <p class="metric-value text-xl font-bold text-slate-100 mt-2">—</p>
+                    <p class="text-[11px] text-slate-500 mt-1">Loading…</p>
+                </div>
+                <div id="metric-route-priority"
+                    class="bg-gradient-to-r from-slate-800 via-slate-900 to-[#0e1e3e] border border-white/10 rounded-xl p-4 text-center backdrop-blur-sm my-2 shadow-lg">
+                    <p class="text-xs uppercase tracking-wider text-slate-400 font-semibold">Top Prototype Priority Route</p>
+                    <p class="metric-value text-xl font-bold text-slate-100 mt-2">—</p>
+                    <p class="text-[11px] text-slate-500 mt-1">Flyvora Prototype Route Priority — not an official traffic ranking</p>
                 </div>
             </section>
 

@@ -50,12 +50,24 @@ function renderRuns(runs) {
 async function loadDashboard() {
   const days =
     document.getElementById("filter-date-range")?.value.match(/\d+/)?.[0] || 30;
-  const [summary, volume, validation, sources, runs] = await Promise.all([
+  const [
+    summary,
+    volume,
+    validation,
+    sources,
+    runs,
+    providerHealth,
+    collectionStatus,
+    routePriority,
+  ] = await Promise.all([
     FlyvoraApi.get("/data-quality/summary"),
     FlyvoraApi.get("/data-quality/ingestion-volume", { days }),
     FlyvoraApi.get("/data-quality/validation-rate"),
     FlyvoraApi.get("/data-quality/sources"),
     FlyvoraApi.get("/data-quality/runs"),
+    FlyvoraApi.get("/collection/provider-health").catch(() => null),
+    FlyvoraApi.get("/collection/status").catch(() => null),
+    FlyvoraApi.get("/collection/route-priority").catch(() => []),
   ]);
   updateMetric("metric-pipeline-uptime", summary.pipelineUptime);
   updateMetric("metric-records-ingested", number(summary.recordsIngested));
@@ -72,6 +84,44 @@ async function loadDashboard() {
         })
       : "No runs",
   );
+  if (providerHealth) {
+    updateMetric(
+      "metric-provider-status",
+      providerHealth.configured ? "Configured" : "Not Configured",
+    );
+    const el = document.querySelector(
+      "#metric-provider-status .text-\\[11px\\]",
+    );
+    if (el)
+      el.textContent = providerHealth.configured
+        ? providerHealth.last_error
+          ? `Last error: ${providerHealth.last_error}`
+          : "Live SerpApi data"
+        : "Historical/CSV data only — no live key set";
+  }
+  if (collectionStatus) {
+    const last = collectionStatus.last_run;
+    updateMetric("metric-last-collection", last ? last.status : "No runs yet");
+    const el = document.querySelector(
+      "#metric-last-collection .text-\\[11px\\]",
+    );
+    if (el)
+      el.textContent = last
+        ? `${last.observations_saved} observations saved, ${last.routes_successful}/${last.routes_attempted} routes`
+        : "Trigger one from /api/collection/run";
+    updateMetric(
+      "metric-next-run",
+      collectionStatus.next_scheduled_run
+        ? new Date(collectionStatus.next_scheduled_run).toLocaleTimeString(
+            "en-IN",
+            { hour: "2-digit", minute: "2-digit" },
+          )
+        : "Not scheduled",
+    );
+  }
+  if (routePriority && routePriority.length) {
+    updateMetric("metric-route-priority", routePriority[0].route_code);
+  }
   ingestionChart?.destroy();
   validationChart?.destroy();
   const ingestionCanvas = document.getElementById("chart-ingestion-volume");
