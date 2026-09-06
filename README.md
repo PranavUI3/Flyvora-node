@@ -1,8 +1,8 @@
-# Airfare Price Index (APIx)
+# Flyvora Airfare Price Index
 
-APIx is a Smart India Hackathon 2026 prototype for exploring changes in Indian domestic airfares. It presents airfare-index insights through a dashboard designed for inflation analysis and route-level monitoring.
+Flyvora is a Smart India Hackathon 2026 prototype for exploring changes in Indian domestic airfares. It combines an Express/PostgreSQL backend with dashboards for inflation analysis, route monitoring, airline comparison, lead-time analysis, and data-quality reporting.
 
-This repository currently contains the front-end dashboard prototype. The views use demonstration data in the browser; a backend, data-ingestion pipeline, and production API are not yet included.
+The repository includes a working local backend, database seeding, API routes, and an optional SerpApi Google Flights ingestion pipeline. Dashboard data is served through the backend API after the database has been initialized.
 
 ## Problem statement
 
@@ -15,13 +15,15 @@ This is an airfare measurement and analytics concept, not a flight-price predict
 | View | Location | Highlights |
 | --- | --- | --- |
 | Overview | `Frontend/Overview/index.html` | Headline airfare index, sector volatility, route ranking, lead-time trends, airline comparison, and anomaly alerts. |
-| Route Explorer | `Frontend/Route Heatmap+Trends/index.html` | Route price trend and route heatmap. |
+| Route Explorer | `Frontend/Route_Heatmap+Trends/routeheatmap.html` | Route price trend and route heatmap. |
 | Lead-Time Analysis | `Frontend/Lead-Time/index.html` | Fare elasticity by days to departure, checkpoint prices, and cross-route comparison. |
-| Airline Comparison | `Frontend/Aireline/airline-comparison.html` | Airline ranking, fares by route, and 30-day carrier index trends. |
+| Airline Comparison | `Frontend/Airline/airline-comparison.html` | Airline ranking, fares by route, and 30-day carrier index trends. |
 | Data Quality | `Frontend/Data-quality/data-quality.html` | Ingestion volumes, validation pass rate, source status, and recent pipeline runs. |
 
 ## Technology
 
+- Node.js and Express
+- PostgreSQL via `pg`
 - HTML, CSS, and vanilla JavaScript
 - Tailwind CSS v4 for locally generated stylesheets
 - Chart.js, loaded from a CDN, for dashboard charts
@@ -30,35 +32,59 @@ This is an airfare measurement and analytics concept, not a flight-price predict
 ## Project structure
 
 ```text
-Flyvora/
+Flyvora-nodejs/
 ├── Frontend/
 │   ├── Overview/                 # Main dashboard
-│   ├── Route Heatmap+Trends/     # Route Explorer dashboard
+│   ├── Route_Heatmap+Trends/     # Route Explorer dashboard
 │   ├── Lead-Time/                # Lead-time analysis dashboard
-│   ├── Aireline/                 # Airline comparison dashboard
+│   ├── Airline/                  # Airline comparison dashboard
 │   └── Data-quality/             # Data-quality dashboard
-├── Backend/                      # Reserved for future backend work
-└── Readme.md
+├── Backend/                      # Express API, database, and ingestion
+└── README.md
 ```
 
-Each dashboard directory contains its page markup and scripts, plus `src/input.css` and the generated `src/output.css` stylesheet.
+Each dashboard directory contains its page markup and scripts, plus `src/input.css` and the generated `src/output.css` stylesheet. Generated CSS and dependency folders are ignored by Git.
 
 ## Run locally
 
 ### Prerequisites
 
-- Node.js 18 or later (only required when regenerating Tailwind CSS)
+- Node.js 18 or later
+- PostgreSQL 14 or later
 - A modern web browser
 
-### View a dashboard
+### Configure the backend
 
-Open the relevant HTML file in a browser. For the most reliable local asset loading, serve the repository from its root with a simple static server, for example:
+Set the PostgreSQL values in `Backend/environment.env` for your machine. The backend also accepts a root `.env` file. Do not commit credentials or API keys.
+
+Create the `flyvora` database in PostgreSQL, then install and start the backend:
 
 ```bash
-npx serve .
+cd Backend
+npm install
+npm start
 ```
 
-Then open one of the page paths listed above at the local URL printed by the server.
+The server initializes its tables and seeds the database when it starts. It serves the dashboards and API from `http://localhost:8000`:
+
+- Overview: `http://localhost:8000/Overview/index.html`
+- Route Explorer: `http://localhost:8000/Route_Heatmap+Trends/routeheatmap.html`
+- Lead-Time Analysis: `http://localhost:8000/Lead-Time/lead-time.html`
+- Airline Comparison: `http://localhost:8000/Airline/airline-comparison.html`
+- Data Quality: `http://localhost:8000/Data-quality/data-quality.html`
+- Health check: `http://localhost:8000/api/health`
+
+For development with automatic server reloads, use `npm run dev` in `Backend`.
+
+### Optional live ingestion
+
+Set `SERPAPI_KEY` in the backend environment file to enable SerpApi collection. `AUTO_COLLECT_ON_STARTUP=false` keeps collection disabled at startup; set it to `true` only when live collection is configured. Scheduled collection runs at the interval set by `COLLECTION_INTERVAL_HOURS`.
+
+You can also trigger a collection manually from `Backend`:
+
+```bash
+npm run collect
+```
 
 ### Rebuild dashboard styles
 
@@ -69,18 +95,18 @@ npm install
 npm run build
 ```
 
-For continuous Tailwind compilation, use `npm run watch` where that script is available.
+Some dashboards use `npm run watch` for continuous Tailwind compilation. The backend serves the generated files directly, so restart is not required after a CSS rebuild.
 
 ## Current status and next steps
 
-The front end is a visual prototype with client-side sample data. The following are planned but not yet implemented in this repository:
+The project is a hackathon prototype. The following areas still need production hardening:
 
-- Authorised data collection and scheduled ingestion
-- Cleaning, normalisation, and persistent storage
-- Statistical index calculation and validation
-- Backend API integration and live dashboard data
+- Authorised data collection and provider reliability controls
+- Stronger authentication, authorization, and API validation
+- Production database migrations, backups, and deployment configuration
+- Automated tests and monitoring for the ingestion pipeline and index calculations
 - Consolidating the separate dashboard folders into a routed application
 
 ## Ethical data collection
 
-Any future data collection should respect source terms, `robots.txt`, rate limits, and applicable law. Sources that do not permit automation
+Any data collection should respect source terms, `robots.txt`, rate limits, and applicable law. Use provider APIs where available, protect API credentials, and do not automate sources that prohibit it.
